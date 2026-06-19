@@ -7,10 +7,9 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 2 adds the Open-Meteo API client foundation. The app now has a shared
-client for HTTP requests, JSON parsing, timeout configuration, custom errors,
-and sanitized failure logging. Location search and forecast-specific services
-will build on this foundation in later steps.
+Step 3 adds global location search. The app now has an Open-Meteo geocoding
+service that turns a free-form location query into normalized location results.
+Forecast retrieval and the user interface will build on this in later steps.
 
 ## Requirements
 
@@ -89,6 +88,22 @@ The shared `OpenMeteo::Client` is responsible for:
 
 Specs use WebMock so API behavior can be described without relying on live
 network calls.
+
+## Global Location Search
+
+`OpenMeteo::LocationSearch` uses the Open-Meteo Geocoding API to search global
+place names and postal codes. Blank or one-character searches return an empty
+list without making an external request, matching Open-Meteo's documented
+behavior for short search terms.
+
+Results are normalized into `LocationResult` objects so the rest of the
+application can work with a clear internal shape instead of raw API hashes.
+Each result exposes coordinates, country, administrative area, timezone, and a
+human-readable display name such as:
+
+```text
+Jacarepaguá, Rio de Janeiro, Brazil
+```
 
 ## Testing Strategy
 
