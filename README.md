@@ -7,9 +7,10 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 3 adds global location search. The app now has an Open-Meteo geocoding
-service that turns a free-form location query into normalized location results.
-Forecast retrieval and the user interface will build on this in later steps.
+Step 4 adds forecast retrieval with Celsius and Fahrenheit support. The app now
+has a forecast client that requests current temperature, weather code, and daily
+high/low forecast data from Open-Meteo. Caching and the user interface will
+build on this in later steps.
 
 ## Requirements
 
@@ -104,6 +105,25 @@ human-readable display name such as:
 ```text
 Jacarepaguá, Rio de Janeiro, Brazil
 ```
+
+## Forecast Retrieval
+
+`OpenMeteo::ForecastClient` retrieves weather data from the Open-Meteo Forecast
+API using the selected location's latitude and longitude. It requests:
+
+- Current temperature.
+- Current weather code.
+- Daily maximum temperature.
+- Daily minimum temperature.
+- Daily weather code.
+
+The client supports both `celsius` and `fahrenheit` through Open-Meteo's
+`temperature_unit` parameter. Unsupported units are rejected before making an
+external API request so invalid user input fails fast and predictably.
+
+Forecast responses are normalized into `ForecastResult` and `DailyForecast`
+objects. This keeps downstream caching and UI code independent from the raw API
+response shape.
 
 ## Testing Strategy
 
