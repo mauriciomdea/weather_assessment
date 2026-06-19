@@ -7,9 +7,10 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 1 initializes the Rails application, configures the project for RSpec, and
-documents the local development setup. Forecast functionality will be added in
-later steps.
+Step 2 adds the Open-Meteo API client foundation. The app now has a shared
+client for HTTP requests, JSON parsing, timeout configuration, custom errors,
+and sanitized failure logging. Location search and forecast-specific services
+will build on this foundation in later steps.
 
 ## Requirements
 
@@ -71,6 +72,23 @@ location's coordinates will be used to retrieve weather data from Open-Meteo.
 
 This keeps ZIP and postal-code searches possible while also supporting broader
 international place names such as "Jacarepagua".
+
+## API Client Foundation
+
+The project uses Ruby's standard `Net::HTTP` library for Open-Meteo requests.
+That keeps the dependency footprint small while still giving enough control over
+timeouts, HTTPS, query parameters, and error handling.
+
+The shared `OpenMeteo::Client` is responsible for:
+
+- Building API request URLs.
+- Applying open and read timeouts.
+- Parsing successful JSON responses.
+- Raising clear custom errors for request, response, and JSON parsing failures.
+- Logging sanitized failure details through `Rails.logger.warn`.
+
+Specs use WebMock so API behavior can be described without relying on live
+network calls.
 
 ## Testing Strategy
 

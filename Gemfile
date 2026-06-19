@@ -41,6 +41,9 @@ group :development, :test do
   # BDD-style specs that document and verify application behavior.
   gem "rspec-rails", "~> 7.1", require: false
 
+  # Deterministic HTTP stubbing for external API specs.
+  gem "webmock", "~> 3.26", require: false
+
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
