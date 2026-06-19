@@ -1,15 +1,13 @@
 # Weather Assessment
 
-Weather Assessment is a Ruby on Rails application for searching global
-locations and retrieving weather forecasts. The application is being built in
-small, reviewed steps with RSpec examples serving as executable documentation
-and acceptance criteria.
+Weather Assessment is a Ruby on Rails application that lets a user search for a
+global location, choose one of the matching results, and view a weather forecast
+for that selected place.
 
-## Current Status
-
-Step 8 adds service-level API failure observability. Open-Meteo failures now log
-sanitized context for location search and forecast lookup while keeping the
-user-facing error messages friendly.
+The original assessment asks for address input, forecast retrieval, display of
+forecast details, 30-minute caching, and an indicator when results come from
+cache. This implementation satisfies those requirements and generalizes the
+input model from ZIP-only lookup to global location search.
 
 ## Requirements
 
@@ -18,13 +16,13 @@ user-facing error messages friendly.
 - SQLite 3
 - Bundler
 
-The project is intentionally configured for a local Ruby/Rails setup rather
-than Docker. This keeps the assessment lightweight while still documenting the
-exact versions required to run it.
+This project intentionally uses a local Ruby/Rails setup instead of Docker. The
+goal is to keep the assessment lightweight while documenting the exact versions
+needed to run it.
 
 ## Setup
 
-Install the required Ruby version, then install dependencies:
+Install Ruby 3.4.9 and Rails 7.2.3.1, then install dependencies:
 
 ```bash
 bundle install
@@ -42,155 +40,205 @@ Run the application:
 bin/rails server
 ```
 
+Open:
+
+```text
+http://127.0.0.1:3000
+```
+
 Run the test suite:
 
 ```bash
 bundle exec rspec
 ```
 
-## Implementation Plan
+Run style checks:
 
-The application will be built through separate commits:
-
-1. Initialize Rails, RSpec, and project documentation.
-2. Add an Open-Meteo API client foundation.
-3. Add global location search.
-4. Add forecast retrieval with Celsius/Fahrenheit unit preference.
-5. Add cached forecast lookup with a 30-minute expiration.
-6. Add progressive location search with Hotwire/Turbo/Stimulus.
-7. Add the user-facing forecast display.
-8. Add API failure logging and friendly error states.
-9. Polish the final documentation and acceptance notes.
-
-## Approach
-
-The original assessment asks for forecast lookup from an address or ZIP code.
-This implementation will generalize that requirement by accepting a free-form
-global location search. Users will select a matching location, and the selected
-location's coordinates will be used to retrieve weather data from Open-Meteo.
-
-This keeps ZIP and postal-code searches possible while also supporting broader
-international place names such as "Jacarepagua".
-
-## API Client Foundation
-
-The project uses Ruby's standard `Net::HTTP` library for Open-Meteo requests.
-That keeps the dependency footprint small while still giving enough control over
-timeouts, HTTPS, query parameters, and error handling.
-
-The shared `OpenMeteo::Client` is responsible for:
-
-- Building API request URLs.
-- Applying open and read timeouts.
-- Parsing successful JSON responses.
-- Raising clear custom errors for request, response, and JSON parsing failures.
-- Logging sanitized failure details through `Rails.logger.warn`.
-
-Specs use WebMock so API behavior can be described without relying on live
-network calls.
-
-## Global Location Search
-
-`OpenMeteo::LocationSearch` uses the Open-Meteo Geocoding API to search global
-place names and postal codes. Blank or one-character searches return an empty
-list without making an external request, matching Open-Meteo's documented
-behavior for short search terms.
-
-Results are normalized into `LocationResult` objects so the rest of the
-application can work with a clear internal shape instead of raw API hashes.
-Each result exposes coordinates, country, administrative area, timezone, and a
-human-readable display name such as:
-
-```text
-Jacarepaguá, Rio de Janeiro, Brazil
+```bash
+bundle exec rubocop
 ```
 
-## Forecast Retrieval
+## User Flow
 
-`OpenMeteo::ForecastClient` retrieves weather data from the Open-Meteo Forecast
-API using the selected location's latitude and longitude. It requests:
+1. The user enters a free-form location query, such as `Jacarepagua`, `Berlin`,
+   or `10001`.
+2. The app searches global locations through the Open-Meteo Geocoding API.
+3. Matching locations are displayed progressively with Turbo and Stimulus.
+4. The user selects a location.
+5. The user can choose Celsius or Fahrenheit.
+6. The app retrieves forecast data from Open-Meteo.
+7. The app displays current temperature, weather code, and daily high/low
+   forecasts.
+8. Forecasts are cached for 30 minutes by selected location and unit.
+9. The forecast page indicates whether the result came from cache.
 
-- Current temperature.
-- Current weather code.
-- Daily maximum temperature.
-- Daily minimum temperature.
-- Daily weather code.
+## Requirement Mapping
 
-The client supports both `celsius` and `fahrenheit` through Open-Meteo's
-`temperature_unit` parameter. Unsupported units are rejected before making an
-external API request so invalid user input fails fast and predictably.
+- Accept an address as input: the app accepts free-form global location input.
+- Retrieve forecast data: selected locations are resolved to latitude/longitude
+  and passed to Open-Meteo Forecast.
+- Include current temperature: shown on the forecast page.
+- Bonus high/low or extended forecast: daily high/low forecast values are shown.
+- Display forecast details: current and daily forecast sections are rendered.
+- Cache for 30 minutes: handled by `OpenMeteo::ForecastLookup`.
+- Display cache indicator: forecast pages show fresh or cached status.
 
-Forecast responses are normalized into `ForecastResult` and `DailyForecast`
-objects. This keeps downstream caching and UI code independent from the raw API
-response shape.
+## Architecture
+
+The app keeps controllers thin and puts business behavior in small service and
+value objects.
+
+```text
+app/controllers/locations_controller.rb
+app/controllers/forecasts_controller.rb
+
+app/services/open_meteo/client.rb
+app/services/open_meteo/location_search.rb
+app/services/open_meteo/forecast_client.rb
+app/services/open_meteo/forecast_lookup.rb
+
+app/models/location_result.rb
+app/models/forecast_result.rb
+app/models/daily_forecast.rb
+```
+
+`OpenMeteo::Client` owns HTTP behavior, JSON parsing, timeouts, custom errors,
+and low-level API failure logging.
+
+`OpenMeteo::LocationSearch` searches global place names and postal codes through
+Open-Meteo Geocoding.
+
+`OpenMeteo::ForecastClient` retrieves current and daily forecast data from
+Open-Meteo Forecast.
+
+`OpenMeteo::ForecastLookup` coordinates forecast retrieval and caching.
+
+The value objects normalize API responses so controllers and views do not depend
+on raw response hashes.
+
+## API Choices
+
+The app uses Open-Meteo because it provides both geocoding and forecast APIs,
+requires no API key for this assessment/demo use case, supports global location
+search, and supports Celsius/Fahrenheit forecast parameters directly.
+
+The implementation uses Ruby's standard `Net::HTTP` instead of adding another
+HTTP library. That keeps the dependency footprint small while still giving
+control over HTTPS, query parameters, timeouts, and error handling.
 
 ## Caching Strategy
 
-`OpenMeteo::ForecastLookup` coordinates forecast retrieval and caching. It uses
-explicit cache reads and writes instead of `Rails.cache.fetch` so the returned
-`ForecastResult` can accurately indicate whether it came from cache.
+Forecasts are cached for 30 minutes using explicit cache reads and writes.
+Explicit reads make it possible to reliably return a `from_cache` flag.
 
-Forecasts are cached for 30 minutes. Cache keys include the selected location
-and the requested temperature unit:
+Example cache keys:
 
 ```text
 forecast/location/3451190/celsius
 forecast/location/3451190/fahrenheit
 ```
 
-When an Open-Meteo location ID is unavailable, the cache falls back to
-coordinates:
+If a location has no Open-Meteo ID, the cache falls back to coordinates:
 
 ```text
 forecast/coordinates/48.8566,2.3522/celsius
 ```
 
-Including the unit in the cache key prevents serving Celsius data for a
-Fahrenheit request, or the other way around.
+The unit is part of the cache key to avoid serving Celsius data for a
+Fahrenheit request, or the reverse.
 
-## Progressive Location Search
+## Error Handling And Observability
 
-The root page renders a location search form backed by Hotwire:
+Controllers show friendly messages when upstream calls fail:
 
-- Turbo frames replace the results area after each search.
-- A Stimulus controller debounces input before submitting the form.
-- The form still works with a regular submit button when JavaScript is not
-  available.
+- Location search failure: `We could not retrieve matching locations right now.
+  Please try again.`
+- Forecast lookup failure: `We could not retrieve the forecast right now.
+  Please try again.`
 
-The search interface handles blank input, short input, empty result sets, and
-upstream API failures with user-friendly messages.
+The services log useful diagnostic context through `Rails.logger.warn`.
 
-## Forecast Display
+Location search logs:
 
-Each location result includes a "View forecast" action. The selected location's
-coordinates and display metadata are passed to the forecast page, where
-`OpenMeteo::ForecastLookup` retrieves or reads the cached forecast.
+- provider and action
+- query length, not the raw query
+- result count
+- language
+- error class
+- upstream status when available
 
-The forecast page shows:
+Forecast lookup logs:
 
-- Selected location name and coordinates.
-- Current temperature.
-- Current weather code.
-- Daily high/low forecast values.
-- Celsius/Fahrenheit unit selector.
-- Cache status indicator.
+- provider and action
+- selected location ID or coordinates
+- requested unit
+- error class
+- upstream status when available
 
-## API Failure Observability
-
-The shared API client logs low-level request failures such as HTTP status,
-invalid JSON, and network errors. The higher-level services add sanitized
-business context:
-
-- Location search logs query length, result count, language, error class, and
-  upstream status.
-- Forecast lookup logs selected location ID or coordinates, requested unit,
-  error class, and upstream status.
-
-Raw free-form address/search input is not written to logs. Controllers keep
-showing friendly messages when upstream API calls fail.
+Raw free-form address/search input is not written to logs.
 
 ## Testing Strategy
 
-RSpec will be used for behavior-driven development. Specs will describe the
-expected behavior before or alongside each feature and will serve as both
-documentation and acceptance criteria for the implementation.
+RSpec is used for behavior-driven development. Specs act as executable
+documentation and acceptance criteria.
+
+WebMock blocks external network access in specs so test results do not depend on
+live API availability.
+
+Coverage includes:
+
+- API client success and failure behavior.
+- Global location search behavior.
+- Forecast response normalization.
+- Celsius/Fahrenheit unit handling.
+- 30-minute cache behavior and cache indicators.
+- Progressive location search request behavior.
+- Forecast display request behavior.
+- Service-level logging for upstream failures.
+
+## Validation
+
+The final validation commands are:
+
+```bash
+bundle exec rspec
+bundle exec rubocop
+bundle exec brakeman --quiet
+```
+
+At the time of this documentation pass, the suite contains 44 passing examples.
+RuboCop reports no offenses. Brakeman reports no application-code security
+warnings, but it does report one weak dependency warning because Rails 7.2.3.1
+support ends on August 9, 2026; this project intentionally uses Rails 7.2.3.1
+to match the assessment setup.
+
+## Assumptions
+
+- The app supports global place names and postal codes rather than only US ZIP
+  codes.
+- A user must select one of the returned locations before forecast retrieval.
+- Weather codes are displayed as raw Open-Meteo codes. A user-friendly weather
+  code translation table would be a good enhancement.
+- Rails' configured cache store is sufficient for the assessment. A production
+  deployment may need a shared cache store.
+
+## Challenges
+
+The main implementation challenge was keeping the original ZIP-code-oriented
+requirement aligned with a broader global address search experience. I chose to
+document that explicitly and cache by selected location plus unit rather than by
+raw query string, because raw queries can be ambiguous.
+
+Another practical challenge was local development through WSL on a Windows
+mounted directory. The app itself is standard Rails, but generated binstub file
+permissions needed care during setup.
+
+## Future Improvements
+
+- Translate Open-Meteo weather codes into human-readable descriptions.
+- Add weather icons.
+- Add system specs with browser-level Turbo/Stimulus interaction coverage.
+- Persist recent searches.
+- Add retry/backoff for retryable upstream API failures.
+- Configure a shared production cache store if deployed beyond a single process.
+- Add deployment instructions.
