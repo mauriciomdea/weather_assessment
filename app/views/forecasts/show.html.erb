@@ -1,0 +1,66 @@
+<main class="page-shell">
+  <section class="search-panel forecast-panel">
+    <%= link_to "Search another location", root_path(unit: @unit), class: "back-link" %>
+
+    <% if @forecast_error.present? %>
+      <h1>Forecast unavailable</h1>
+      <p class="status-message error"><%= @forecast_error %></p>
+    <% else %>
+      <div class="forecast-header">
+        <div>
+          <h1><%= @location.display_name %></h1>
+          <p class="lede">
+            <%= number_with_precision(@location.latitude, precision: 4) %>,
+            <%= number_with_precision(@location.longitude, precision: 4) %>
+            <% if @forecast.timezone.present? %>
+              &middot; <%= @forecast.timezone %>
+            <% end %>
+          </p>
+        </div>
+
+        <%= form_with url: forecast_path, method: :get, class: "unit-form" do %>
+          <%= render "location_fields", location: @location %>
+          <%= label_tag :unit, "Units" %>
+          <%= select_tag :unit,
+                         options_for_select([ [ "Celsius", "celsius" ], [ "Fahrenheit", "fahrenheit" ] ], @forecast.unit),
+                         onchange: "this.form.requestSubmit()" %>
+        <% end %>
+      </div>
+
+      <% if @forecast.from_cache %>
+        <p class="cache-indicator">Forecast served from cache.</p>
+      <% else %>
+        <p class="cache-indicator fresh">Forecast retrieved from Open-Meteo.</p>
+      <% end %>
+
+      <section class="current-forecast">
+        <h2>Current Conditions</h2>
+        <p class="temperature">
+          <%= number_with_precision(@forecast.current_temperature, precision: 1) %>&deg;<%= @forecast.temperature_unit_symbol %>
+        </p>
+        <% if @forecast.current_weather_code.present? %>
+          <p class="status-message">Weather code: <%= @forecast.current_weather_code %></p>
+        <% end %>
+      </section>
+
+      <section class="daily-forecast">
+        <h2>Daily Forecast</h2>
+        <ul class="forecast-list">
+          <% @forecast.daily_forecasts.each do |daily_forecast| %>
+            <li>
+              <strong><%= daily_forecast.date %></strong>
+              <span>
+                High <%= number_with_precision(daily_forecast.temperature_max, precision: 1) %>&deg;<%= @forecast.temperature_unit_symbol %>
+                /
+                Low <%= number_with_precision(daily_forecast.temperature_min, precision: 1) %>&deg;<%= @forecast.temperature_unit_symbol %>
+              </span>
+              <% if daily_forecast.weather_code.present? %>
+                <span>Weather code: <%= daily_forecast.weather_code %></span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+  </section>
+</main>

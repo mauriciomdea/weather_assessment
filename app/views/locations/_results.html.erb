@@ -17,9 +17,15 @@
             <%= number_with_precision(location.latitude, precision: 4) %>,
             <%= number_with_precision(location.longitude, precision: 4) %>
             <% if location.timezone.present? %>
-              · <%= location.timezone %>
+              &middot; <%= location.timezone %>
             <% end %>
           </span>
+
+          <%= form_with url: forecast_path, method: :get, data: { turbo_frame: "_top" }, class: "forecast-selection-form" do %>
+            <%= render "forecasts/location_fields", location: location %>
+            <%= hidden_field_tag :unit, unit %>
+            <%= submit_tag "View forecast" %>
+          <% end %>
         </li>
       <% end %>
     </ul>

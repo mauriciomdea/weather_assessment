@@ -8,6 +8,8 @@ RSpec.describe "Locations", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Weather Assessment")
       expect(response.body).to include("Start typing to search global locations.")
+      expect(response.body).to include("Celsius")
+      expect(response.body).to include("Fahrenheit")
     end
   end
 
@@ -46,6 +48,7 @@ RSpec.describe "Locations", type: :request do
       expect(response.body).to include("Matching Locations")
       expect(response.body).to include("Jacarepaguá, Rio de Janeiro, Brazil")
       expect(response.body).to include("America/Sao_Paulo")
+      expect(response.body).to include("View forecast")
     end
 
     it "renders an empty state when no locations match" do

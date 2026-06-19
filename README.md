@@ -7,10 +7,9 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 6 adds the progressive location search interface. Users can now search for
-global locations from the root page, and matching results update through
-Turbo/Stimulus without requiring a full manual page refresh. Forecast display
-will be connected in the next step.
+Step 7 adds the forecast display interface. Users can choose a search result,
+view current conditions and daily high/low forecasts, switch between Celsius
+and Fahrenheit, and see whether a forecast was served from cache.
 
 ## Requirements
 
@@ -160,6 +159,21 @@ The root page renders a location search form backed by Hotwire:
 
 The search interface handles blank input, short input, empty result sets, and
 upstream API failures with user-friendly messages.
+
+## Forecast Display
+
+Each location result includes a "View forecast" action. The selected location's
+coordinates and display metadata are passed to the forecast page, where
+`OpenMeteo::ForecastLookup` retrieves or reads the cached forecast.
+
+The forecast page shows:
+
+- Selected location name and coordinates.
+- Current temperature.
+- Current weather code.
+- Daily high/low forecast values.
+- Celsius/Fahrenheit unit selector.
+- Cache status indicator.
 
 ## Testing Strategy
 
