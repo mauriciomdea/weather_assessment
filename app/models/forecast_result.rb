@@ -8,7 +8,8 @@ class ForecastResult
               :current_temperature,
               :current_weather_code,
               :current_time,
-              :daily_forecasts
+              :daily_forecasts,
+              :from_cache
 
   def self.from_api(response, unit:)
     daily = response.fetch("daily", {})
@@ -57,9 +58,24 @@ class ForecastResult
     @current_weather_code = attributes[:current_weather_code]
     @current_time = attributes[:current_time]
     @daily_forecasts = attributes[:daily_forecasts] || []
+    @from_cache = attributes.fetch(:from_cache, false)
   end
 
   def temperature_unit_symbol
     unit == "fahrenheit" ? "F" : "C"
+  end
+
+  def with_cache_status(from_cache)
+    self.class.new(
+      latitude:,
+      longitude:,
+      timezone:,
+      unit:,
+      current_temperature:,
+      current_weather_code:,
+      current_time:,
+      daily_forecasts:,
+      from_cache:
+    )
   end
 end

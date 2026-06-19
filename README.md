@@ -7,10 +7,9 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 4 adds forecast retrieval with Celsius and Fahrenheit support. The app now
-has a forecast client that requests current temperature, weather code, and daily
-high/low forecast data from Open-Meteo. Caching and the user interface will
-build on this in later steps.
+Step 5 adds cached forecast lookup. Forecasts are now cached for 30 minutes by
+selected location and temperature unit, and forecast results include a
+`from_cache` flag that the user interface can display in later steps.
 
 ## Requirements
 
@@ -124,6 +123,30 @@ external API request so invalid user input fails fast and predictably.
 Forecast responses are normalized into `ForecastResult` and `DailyForecast`
 objects. This keeps downstream caching and UI code independent from the raw API
 response shape.
+
+## Caching Strategy
+
+`OpenMeteo::ForecastLookup` coordinates forecast retrieval and caching. It uses
+explicit cache reads and writes instead of `Rails.cache.fetch` so the returned
+`ForecastResult` can accurately indicate whether it came from cache.
+
+Forecasts are cached for 30 minutes. Cache keys include the selected location
+and the requested temperature unit:
+
+```text
+forecast/location/3451190/celsius
+forecast/location/3451190/fahrenheit
+```
+
+When an Open-Meteo location ID is unavailable, the cache falls back to
+coordinates:
+
+```text
+forecast/coordinates/48.8566,2.3522/celsius
+```
+
+Including the unit in the cache key prevents serving Celsius data for a
+Fahrenheit request, or the other way around.
 
 ## Testing Strategy
 
