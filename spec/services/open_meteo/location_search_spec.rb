@@ -1,9 +1,10 @@
 require "rails_helper"
 
 RSpec.describe OpenMeteo::LocationSearch do
-  subject(:location_search) { described_class.new(client:) }
+  subject(:location_search) { described_class.new(client:, logger:) }
 
   let(:client) { instance_double(OpenMeteo::Client) }
+  let(:logger) { instance_double(ActiveSupport::Logger, warn: nil) }
 
   describe "#call" do
     it "returns matching global locations for a search term" do
@@ -84,6 +85,29 @@ RSpec.describe OpenMeteo::LocationSearch do
 
       expect { location_search.call("London") }
         .to raise_error(OpenMeteo::RequestError, "Open-Meteo geocoding request failed")
+    end
+
+    it "logs sanitized context when geocoding fails" do
+      allow(client).to receive(:get)
+        .and_raise(OpenMeteo::ResponseError.new("Open-Meteo geocoding failed with HTTP 503", action: "geocoding", status: "503"))
+
+      expect do
+        location_search.call("1 Infinite Loop, Cupertino, CA", count: 5, language: "en")
+      end.to raise_error(OpenMeteo::ResponseError)
+
+      expect(logger).to have_received(:warn)
+        .with(
+          include(
+            "provider=open_meteo",
+            "action=geocoding",
+            "query_length=30",
+            "count=5",
+            "language=en",
+            "error_class=OpenMeteo::ResponseError",
+            "status=503"
+          )
+        )
+      expect(logger).not_to have_received(:warn).with(include("Infinite Loop"))
     end
   end
 end

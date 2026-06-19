@@ -1,10 +1,11 @@
 require "rails_helper"
 
 RSpec.describe OpenMeteo::ForecastLookup do
-  subject(:forecast_lookup) { described_class.new(forecast_client:, cache_store:) }
+  subject(:forecast_lookup) { described_class.new(forecast_client:, cache_store:, logger:) }
 
   let(:forecast_client) { instance_double(OpenMeteo::ForecastClient) }
   let(:cache_store) { ActiveSupport::Cache::MemoryStore.new }
+  let(:logger) { instance_double(ActiveSupport::Logger, warn: nil) }
   let(:location) do
     LocationResult.new(
       id: 3_451_190,
@@ -83,7 +84,7 @@ RSpec.describe OpenMeteo::ForecastLookup do
 
     it "rejects unsupported units before reading from cache or fetching forecasts" do
       cache_store = instance_double(ActiveSupport::Cache::MemoryStore)
-      forecast_lookup = described_class.new(forecast_client:, cache_store:)
+      forecast_lookup = described_class.new(forecast_client:, cache_store:, logger:)
 
       expect(cache_store).not_to receive(:read)
       expect(forecast_client).not_to receive(:fetch)
@@ -91,6 +92,27 @@ RSpec.describe OpenMeteo::ForecastLookup do
       expect do
         forecast_lookup.call(location:, unit: "kelvin")
       end.to raise_error(ArgumentError, 'Unsupported temperature unit: "kelvin"')
+    end
+
+    it "logs location and unit context when forecast retrieval fails" do
+      allow(forecast_client).to receive(:fetch)
+        .and_raise(OpenMeteo::ResponseError.new("Open-Meteo forecast failed with HTTP 429", action: "forecast", status: "429"))
+
+      expect do
+        forecast_lookup.call(location:, unit: "celsius")
+      end.to raise_error(OpenMeteo::ResponseError)
+
+      expect(logger).to have_received(:warn)
+        .with(
+          include(
+            "provider=open_meteo",
+            "action=forecast",
+            "location=id:3451190",
+            "unit=celsius",
+            "error_class=OpenMeteo::ResponseError",
+            "status=429"
+          )
+        )
     end
   end
 

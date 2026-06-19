@@ -7,9 +7,9 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 7 adds the forecast display interface. Users can choose a search result,
-view current conditions and daily high/low forecasts, switch between Celsius
-and Fahrenheit, and see whether a forecast was served from cache.
+Step 8 adds service-level API failure observability. Open-Meteo failures now log
+sanitized context for location search and forecast lookup while keeping the
+user-facing error messages friendly.
 
 ## Requirements
 
@@ -174,6 +174,20 @@ The forecast page shows:
 - Daily high/low forecast values.
 - Celsius/Fahrenheit unit selector.
 - Cache status indicator.
+
+## API Failure Observability
+
+The shared API client logs low-level request failures such as HTTP status,
+invalid JSON, and network errors. The higher-level services add sanitized
+business context:
+
+- Location search logs query length, result count, language, error class, and
+  upstream status.
+- Forecast lookup logs selected location ID or coordinates, requested unit,
+  error class, and upstream status.
+
+Raw free-form address/search input is not written to logs. Controllers keep
+showing friendly messages when upstream API calls fail.
 
 ## Testing Strategy
 
