@@ -1,0 +1,30 @@
+<main class="page-shell">
+  <section class="search-panel">
+    <h1>Weather Assessment</h1>
+    <p class="lede">Search for a city, neighborhood, address, or postal code to find matching global locations.</p>
+
+    <%= form_with url: locations_path,
+                  method: :get,
+                  data: {
+                    controller: "location-search",
+                    location_search_target: "form",
+                    turbo_frame: "location_results"
+                  },
+                  class: "location-search-form" do |form| %>
+      <%= form.label :query, "Location" %>
+      <div class="search-row">
+        <%= form.search_field :query,
+                              value: @query,
+                              placeholder: "Jacarepagua, Berlin, 10001...",
+                              autocomplete: "off",
+                              autofocus: true,
+                              data: { action: "input->location-search#search" } %>
+        <%= form.submit "Search" %>
+      </div>
+    <% end %>
+
+    <%= turbo_frame_tag "location_results" do %>
+      <%= render "results", locations: @locations, query: @query, search_performed: @search_performed, error: @location_search_error %>
+    <% end %>
+  </section>
+</main>

@@ -1,0 +1,27 @@
+<section class="location-results" aria-live="polite">
+  <% if error.present? %>
+    <p class="status-message error"><%= error %></p>
+  <% elsif query.blank? %>
+    <p class="status-message">Start typing to search global locations.</p>
+  <% elsif query.strip.length < 2 %>
+    <p class="status-message">Enter at least two characters to search.</p>
+  <% elsif search_performed && locations.empty? %>
+    <p class="status-message">No matching locations found for "<%= query %>".</p>
+  <% elsif locations.any? %>
+    <h2>Matching Locations</h2>
+    <ul class="location-list">
+      <% locations.each do |location| %>
+        <li class="location-result">
+          <strong><%= location.display_name %></strong>
+          <span>
+            <%= number_with_precision(location.latitude, precision: 4) %>,
+            <%= number_with_precision(location.longitude, precision: 4) %>
+            <% if location.timezone.present? %>
+              · <%= location.timezone %>
+            <% end %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

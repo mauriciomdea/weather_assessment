@@ -7,9 +7,10 @@ and acceptance criteria.
 
 ## Current Status
 
-Step 5 adds cached forecast lookup. Forecasts are now cached for 30 minutes by
-selected location and temperature unit, and forecast results include a
-`from_cache` flag that the user interface can display in later steps.
+Step 6 adds the progressive location search interface. Users can now search for
+global locations from the root page, and matching results update through
+Turbo/Stimulus without requiring a full manual page refresh. Forecast display
+will be connected in the next step.
 
 ## Requirements
 
@@ -147,6 +148,18 @@ forecast/coordinates/48.8566,2.3522/celsius
 
 Including the unit in the cache key prevents serving Celsius data for a
 Fahrenheit request, or the other way around.
+
+## Progressive Location Search
+
+The root page renders a location search form backed by Hotwire:
+
+- Turbo frames replace the results area after each search.
+- A Stimulus controller debounces input before submitting the form.
+- The form still works with a regular submit button when JavaScript is not
+  available.
+
+The search interface handles blank input, short input, empty result sets, and
+upstream API failures with user-friendly messages.
 
 ## Testing Strategy
 
