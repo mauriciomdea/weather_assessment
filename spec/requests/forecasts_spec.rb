@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "Forecasts", type: :request do
+  before do
+    Rails.cache.clear
+  end
+
   describe "GET /forecast" do
     it "displays the selected location forecast" do
       forecast_lookup = instance_double(OpenMeteo::ForecastLookup)
@@ -30,6 +34,19 @@ RSpec.describe "Forecasts", type: :request do
       get forecast_path, params: location_params.merge(unit: "celsius")
 
       expect(response.body).to include("Forecast served from cache.")
+    end
+
+    it "serves repeated forecast requests from Rails cache" do
+      forecast_client = instance_double(OpenMeteo::ForecastClient)
+      allow(OpenMeteo::ForecastClient).to receive(:new).and_return(forecast_client)
+      allow(forecast_client).to receive(:fetch).and_return(forecast_result(from_cache: false))
+
+      get forecast_path, params: location_params.merge(unit: "celsius")
+      expect(response.body).to include("Forecast retrieved from Open-Meteo.")
+
+      get forecast_path, params: location_params.merge(unit: "celsius")
+      expect(response.body).to include("Forecast served from cache.")
+      expect(forecast_client).to have_received(:fetch).once
     end
 
     it "passes Fahrenheit preference to the lookup service" do

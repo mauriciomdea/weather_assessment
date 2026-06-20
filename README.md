@@ -131,6 +131,9 @@ control over HTTPS, query parameters, timeouts, and error handling.
 Forecasts are cached for 30 minutes using explicit cache reads and writes.
 Explicit reads make it possible to reliably return a `from_cache` flag.
 
+Development and test use Rails' in-memory cache store so this behavior works
+locally without requiring `rails dev:cache`.
+
 Example cache keys:
 
 ```text

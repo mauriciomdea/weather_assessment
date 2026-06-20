@@ -17,18 +17,20 @@ Rails.application.configure do
   # Enable server timing.
   config.server_timing = true
 
-  # Enable/disable caching. By default caching is disabled.
-  # Run rails dev:cache to toggle caching.
+  # Forecast caching is core application behavior for this assessment, so keep
+  # Rails.cache backed by memory in development. Static asset cache headers and
+  # fragment cache logging remain controlled by rails dev:cache.
+  config.cache_store = :memory_store
+
+  # Enable/disable controller fragment caching.
+  # Run rails dev:cache to toggle fragment cache logging and static cache headers.
   if Rails.root.join("tmp/caching-dev.txt").exist?
     config.action_controller.perform_caching = true
     config.action_controller.enable_fragment_cache_logging = true
 
-    config.cache_store = :memory_store
     config.public_file_server.headers = { "Cache-Control" => "public, max-age=#{2.days.to_i}" }
   else
     config.action_controller.perform_caching = false
-
-    config.cache_store = :null_store
   end
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
