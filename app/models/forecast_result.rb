@@ -9,7 +9,8 @@ class ForecastResult
               :current_weather_code,
               :current_time,
               :daily_forecasts,
-              :from_cache
+              :from_cache,
+              :retrieved_at
 
   def self.from_api(response, unit:)
     daily = response.fetch("daily", {})
@@ -59,10 +60,17 @@ class ForecastResult
     @current_time = attributes[:current_time]
     @daily_forecasts = attributes[:daily_forecasts] || []
     @from_cache = attributes.fetch(:from_cache, false)
+    @retrieved_at = attributes[:retrieved_at] || Time.current
   end
 
   def temperature_unit_symbol
     unit == "fahrenheit" ? "F" : "C"
+  end
+
+  def cache_age_in_minutes
+    return unless from_cache && retrieved_at
+
+    [ (Time.current - retrieved_at) / 60, 0 ].max.floor
   end
 
   def with_cache_status(from_cache)
@@ -75,7 +83,8 @@ class ForecastResult
       current_weather_code:,
       current_time:,
       daily_forecasts:,
-      from_cache:
+      from_cache:,
+      retrieved_at:
     )
   end
 end

@@ -70,7 +70,8 @@ bundle exec rubocop
 7. The app displays current temperature, weather code, and daily high/low
    forecasts.
 8. Forecasts are cached for 30 minutes by selected location and unit.
-9. The forecast page indicates whether the result came from cache.
+9. Cached forecast pages show how many minutes ago the forecast was last
+   updated.
 
 ## Requirement Mapping
 
@@ -81,7 +82,8 @@ bundle exec rubocop
 - Bonus high/low or extended forecast: daily high/low forecast values are shown.
 - Display forecast details: current and daily forecast sections are rendered.
 - Cache for 30 minutes: handled by `OpenMeteo::ForecastLookup`.
-- Display cache indicator: forecast pages show fresh or cached status.
+- Display cache indicator: cached forecast pages show the age of the cached
+  result in minutes.
 
 ## Architecture
 
@@ -129,7 +131,8 @@ control over HTTPS, query parameters, timeouts, and error handling.
 ## Caching Strategy
 
 Forecasts are cached for 30 minutes using explicit cache reads and writes.
-Explicit reads make it possible to reliably return a `from_cache` flag.
+Explicit reads make it possible to reliably return a `from_cache` flag and show
+how old a cached result is.
 
 Development and test use Rails' in-memory cache store so this behavior works
 locally without requiring `rails dev:cache`.

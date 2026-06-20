@@ -46,7 +46,8 @@ RSpec.describe OpenMeteo::ForecastLookup do
 
       expect(cached_forecast).to have_attributes(
         current_temperature: 24.8,
-        from_cache: true
+        from_cache: true,
+        retrieved_at: fresh_forecast.retrieved_at
       )
       expect(forecast_client).to have_received(:fetch).once
     end

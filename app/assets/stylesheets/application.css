@@ -199,11 +199,6 @@ body {
   font-weight: 700;
 }
 
-.cache-indicator.fresh {
-  background: #eef4fb;
-  color: #24527a;
-}
-
 .current-forecast,
 .daily-forecast {
   margin-top: 24px;

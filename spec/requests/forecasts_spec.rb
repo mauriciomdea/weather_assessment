@@ -23,29 +23,31 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("24.8&deg;C")
       expect(response.body).to include("High 29.1&deg;C")
       expect(response.body).to include("Low 20.4&deg;C")
-      expect(response.body).to include("Forecast retrieved from Open-Meteo.")
+      expect(response.body).not_to include("Last update")
     end
 
-    it "displays an indicator when the forecast comes from cache" do
+    it "displays the age of cached forecasts" do
       forecast_lookup = instance_double(OpenMeteo::ForecastLookup)
       allow(OpenMeteo::ForecastLookup).to receive(:new).and_return(forecast_lookup)
-      allow(forecast_lookup).to receive(:call).and_return(forecast_result(from_cache: true))
+      allow(forecast_lookup).to receive(:call)
+        .and_return(forecast_result(from_cache: true, retrieved_at: 7.minutes.ago))
 
       get forecast_path, params: location_params.merge(unit: "celsius")
 
-      expect(response.body).to include("Forecast served from cache.")
+      expect(response.body).to include("Last update 7 minutes ago.")
     end
 
     it "serves repeated forecast requests from Rails cache" do
       forecast_client = instance_double(OpenMeteo::ForecastClient)
       allow(OpenMeteo::ForecastClient).to receive(:new).and_return(forecast_client)
-      allow(forecast_client).to receive(:fetch).and_return(forecast_result(from_cache: false))
+      allow(forecast_client).to receive(:fetch)
+        .and_return(forecast_result(from_cache: false, retrieved_at: 4.minutes.ago))
 
       get forecast_path, params: location_params.merge(unit: "celsius")
-      expect(response.body).to include("Forecast retrieved from Open-Meteo.")
+      expect(response.body).not_to include("Last update")
 
       get forecast_path, params: location_params.merge(unit: "celsius")
-      expect(response.body).to include("Forecast served from cache.")
+      expect(response.body).to include("Last update 4 minutes ago.")
       expect(forecast_client).to have_received(:fetch).once
     end
 
@@ -98,7 +100,7 @@ RSpec.describe "Forecasts", type: :request do
     }
   end
 
-  def forecast_result(unit: "celsius", from_cache:)
+  def forecast_result(unit: "celsius", from_cache:, retrieved_at: Time.current)
     ForecastResult.new(
       latitude: -22.9626,
       longitude: -43.3866,
@@ -109,7 +111,8 @@ RSpec.describe "Forecasts", type: :request do
       daily_forecasts: [
         DailyForecast.new(date: "2026-06-19", temperature_max: 29.1, temperature_min: 20.4, weather_code: 2)
       ],
-      from_cache:
+      from_cache:,
+      retrieved_at:
     )
   end
 end

@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe ForecastResult do
+  include ActiveSupport::Testing::TimeHelpers
+
   describe ".from_api" do
     it "normalizes current and daily Open-Meteo forecast data" do
       forecast = described_class.from_api(api_response, unit: "celsius")
@@ -13,7 +15,8 @@ RSpec.describe ForecastResult do
         current_temperature: 24.8,
         current_weather_code: 2,
         current_time: "2026-06-19T12:00",
-        from_cache: false
+        from_cache: false,
+        retrieved_at: be_present
       )
 
       expect(forecast.daily_forecasts).to contain_exactly(
@@ -56,7 +59,8 @@ RSpec.describe ForecastResult do
         timezone: "America/Sao_Paulo",
         unit: "celsius",
         current_temperature: 24.8,
-        daily_forecasts: [ DailyForecast.new(date: "2026-06-19") ]
+        daily_forecasts: [ DailyForecast.new(date: "2026-06-19") ],
+        retrieved_at: Time.zone.local(2026, 6, 19, 12, 0)
       )
 
       cached_forecast = forecast.with_cache_status(true)
@@ -67,9 +71,30 @@ RSpec.describe ForecastResult do
         timezone: "America/Sao_Paulo",
         unit: "celsius",
         current_temperature: 24.8,
-        from_cache: true
+        from_cache: true,
+        retrieved_at: Time.zone.local(2026, 6, 19, 12, 0)
       )
       expect(cached_forecast.daily_forecasts).to eq(forecast.daily_forecasts)
+    end
+  end
+
+  describe "#cache_age_in_minutes" do
+    it "returns the age of a cached forecast rounded down to minutes" do
+      travel_to Time.zone.local(2026, 6, 19, 12, 15, 45) do
+        forecast = described_class.new(
+          unit: "celsius",
+          from_cache: true,
+          retrieved_at: Time.zone.local(2026, 6, 19, 12, 3, 30)
+        )
+
+        expect(forecast.cache_age_in_minutes).to eq(12)
+      end
+    end
+
+    it "does not report an age for fresh forecasts" do
+      forecast = described_class.new(unit: "celsius", from_cache: false)
+
+      expect(forecast.cache_age_in_minutes).to be_nil
     end
   end
 

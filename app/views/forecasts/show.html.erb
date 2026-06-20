@@ -28,9 +28,9 @@
       </div>
 
       <% if @forecast.from_cache %>
-        <p class="cache-indicator">Forecast served from cache.</p>
-      <% else %>
-        <p class="cache-indicator fresh">Forecast retrieved from Open-Meteo.</p>
+        <p class="cache-indicator">
+          Last update <%= pluralize(@forecast.cache_age_in_minutes, "minute") %> ago.
+        </p>
       <% end %>
 
       <section class="current-forecast">
