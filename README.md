@@ -86,7 +86,9 @@ bundle exec rubocop
 - Include current temperature: shown on the forecast page.
 - Bonus high/low or extended forecast: daily high/low forecast values are shown.
 - Display forecast details: current and daily forecast sections are rendered.
-- Cache for 30 minutes: handled by `OpenMeteo::ForecastLookup`.
+- Cache for 30 minutes: handled by `OpenMeteo::ForecastLookup`; for ZIP-code
+  results, the cache key uses the selected location ID generated from the ZIP
+  code.
 - Display cache indicator: cached forecast pages show the age of the cached
   result in minutes.
 
@@ -212,8 +214,7 @@ Coverage includes:
 - Forecast response normalization.
 - Celsius/Fahrenheit unit conversion without duplicate upstream requests.
 - 30-minute cache behavior and cache indicators.
-- Progressive location search request behavior.
-- Forecast display request behavior.
+- Location and forecast request behavior.
 - Service-level logging for upstream failures.
 
 ## Validation
