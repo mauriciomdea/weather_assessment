@@ -19,17 +19,12 @@
                               autocomplete: "off",
                               autofocus: true,
                               data: { action: "input->location-search#search" } %>
-        <%= form.select :unit,
-                        options_for_select([ [ "Celsius", "celsius" ], [ "Fahrenheit", "fahrenheit" ] ], @unit),
-                        {},
-                        data: { action: "change->location-search#search" },
-                        aria: { label: "Temperature unit" } %>
         <%= form.submit "Search" %>
       </div>
     <% end %>
 
     <%= turbo_frame_tag "location_results" do %>
-      <%= render "results", locations: @locations, query: @query, unit: @unit, search_performed: @search_performed, error: @location_search_error %>
+      <%= render "results", locations: @locations, query: @query, search_performed: @search_performed, error: @location_search_error %>
     <% end %>
   </section>
 </main>

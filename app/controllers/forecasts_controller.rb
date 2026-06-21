@@ -1,6 +1,6 @@
 class ForecastsController < ApplicationController
   def show
-    @unit = ForecastResult.normalize_unit(params[:unit].presence || "celsius")
+    @unit = ForecastResult.normalize_unit(params[:unit].presence || "fahrenheit")
     @location = selected_location
     @forecast = OpenMeteo::ForecastLookup.new.call(location: @location, unit: @unit)
   rescue ArgumentError, TypeError

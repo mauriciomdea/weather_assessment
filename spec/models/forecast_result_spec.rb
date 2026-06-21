@@ -51,6 +51,53 @@ RSpec.describe ForecastResult do
     end
   end
 
+  describe "#with_unit" do
+    it "converts Fahrenheit forecast temperatures to Celsius" do
+      forecast = described_class.new(
+        latitude: -22.96,
+        longitude: -43.38,
+        timezone: "America/Sao_Paulo",
+        unit: "fahrenheit",
+        current_temperature: 77.0,
+        daily_forecasts: [
+          DailyForecast.new(date: "2026-06-19", temperature_max: 86.0, temperature_min: 68.0, weather_code: 2)
+        ],
+        from_cache: true,
+        retrieved_at: Time.zone.local(2026, 6, 19, 12, 0)
+      )
+
+      converted_forecast = forecast.with_unit("celsius")
+
+      expect(converted_forecast).to have_attributes(
+        unit: "celsius",
+        current_temperature: 25.0,
+        from_cache: true,
+        retrieved_at: Time.zone.local(2026, 6, 19, 12, 0)
+      )
+      expect(converted_forecast.daily_forecasts).to contain_exactly(
+        have_attributes(date: "2026-06-19", temperature_max: 30.0, temperature_min: 20.0, weather_code: 2)
+      )
+    end
+
+    it "converts Celsius forecast temperatures to Fahrenheit" do
+      forecast = described_class.new(
+        unit: "celsius",
+        current_temperature: 25.0,
+        daily_forecasts: [
+          DailyForecast.new(date: "2026-06-19", temperature_max: 30.0, temperature_min: 20.0)
+        ]
+      )
+
+      converted_forecast = forecast.with_unit("fahrenheit")
+
+      expect(converted_forecast.current_temperature).to eq(77.0)
+      expect(converted_forecast.daily_forecasts.first).to have_attributes(
+        temperature_max: 86.0,
+        temperature_min: 68.0
+      )
+    end
+  end
+
   describe "#with_cache_status" do
     it "returns a copy with the requested cache status" do
       forecast = described_class.new(

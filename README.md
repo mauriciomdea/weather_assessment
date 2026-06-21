@@ -66,11 +66,13 @@ bundle exec rubocop
    Zippopotam.us.
 3. Matching locations are displayed progressively with Turbo and Stimulus.
 4. The user selects a location.
-5. The user can choose Celsius or Fahrenheit.
-6. The app retrieves forecast data from Open-Meteo.
-7. The app displays current temperature and daily high/low forecasts.
-8. Forecasts are cached for 30 minutes by selected location and unit.
-9. Cached forecast pages show how many minutes ago the forecast was last
+5. The app retrieves Fahrenheit forecast data from Open-Meteo.
+6. The app displays current temperature and daily high/low forecasts.
+7. The user can switch between Fahrenheit and Celsius on the forecast page.
+8. Forecasts are cached for 30 minutes by selected location.
+9. Unit changes convert the cached Fahrenheit forecast without another
+   Open-Meteo request.
+10. Cached forecast pages show how many minutes ago the forecast was last
    updated.
 
 ## Requirement Mapping
@@ -112,7 +114,10 @@ and low-level API failure logging.
 `OpenMeteo::ForecastClient` retrieves current and daily forecast data from
 Open-Meteo Forecast.
 
-`OpenMeteo::ForecastLookup` coordinates forecast retrieval and caching.
+`OpenMeteo::ForecastLookup` coordinates forecast retrieval, caching, and display
+unit conversion. It always fetches Fahrenheit data from Open-Meteo, stores one
+cached forecast per location, and converts that cached result when Celsius is
+requested.
 
 `Zippopotamus::Client` owns HTTP behavior, JSON parsing, timeouts, custom
 errors, and low-level API failure logging for ZIP-code lookup.
@@ -130,8 +135,9 @@ no API key, supports US ZIP-code lookup, and returns latitude/longitude data in 
 small response shape that maps cleanly into the app's location boundary.
 
 The app uses Open-Meteo for forecast retrieval because it requires no API key for
-this assessment/demo use case and supports Celsius/Fahrenheit forecast
-parameters directly.
+this assessment/demo use case and provides current and daily forecast data. The
+app requests Fahrenheit data consistently and performs Celsius conversion locally
+so changing units does not trigger another upstream request.
 
 The implementation uses Ruby's standard `Net::HTTP` instead of adding another
 HTTP library. That keeps the dependency footprint small while still giving
@@ -149,18 +155,17 @@ locally without requiring `rails dev:cache`.
 Example cache keys:
 
 ```text
-forecast/location/3451190/celsius
-forecast/location/3451190/fahrenheit
+forecast/location/US-95014-0
 ```
 
 If a location has no Open-Meteo ID, the cache falls back to coordinates:
 
 ```text
-forecast/coordinates/48.8566,2.3522/celsius
+forecast/coordinates/48.8566,2.3522
 ```
 
-The unit is part of the cache key to avoid serving Celsius data for a
-Fahrenheit request, or the reverse.
+The unit is intentionally not part of the cache key. Forecast data is fetched and
+cached in Fahrenheit, then converted for Celsius display when requested.
 
 ## Error Handling And Observability
 
@@ -184,7 +189,7 @@ Forecast lookup logs:
 
 - provider and action
 - selected location ID or coordinates
-- requested unit
+- upstream fetch unit and requested display unit
 - error class
 - upstream status when available
 
@@ -203,7 +208,7 @@ Coverage includes:
 - API client success and failure behavior.
 - US ZIP-code location search behavior.
 - Forecast response normalization.
-- Celsius/Fahrenheit unit handling.
+- Celsius/Fahrenheit unit conversion without duplicate upstream requests.
 - 30-minute cache behavior and cache indicators.
 - Progressive location search request behavior.
 - Forecast display request behavior.
@@ -219,7 +224,7 @@ bundle exec rubocop
 bundle exec brakeman --quiet
 ```
 
-At the time of this documentation pass, the suite contains 51 passing examples.
+At the time of this documentation pass, the suite contains 54 passing examples.
 RuboCop reports no offenses. Brakeman reports no application-code security
 warnings, but it does report one weak dependency warning because Rails 7.2.3.1
 support ends on August 9, 2026; this project intentionally uses Rails 7.2.3.1
@@ -239,8 +244,8 @@ to match the assessment setup.
 The main implementation challenge was keeping address input flexible while
 preserving the assessment's ZIP-code caching requirement. I chose to extract the
 US ZIP code from the submitted address, resolve it through a dedicated location
-service, and cache forecasts by selected location plus unit rather than by raw
-query string, because raw addresses can be ambiguous.
+service, and cache forecasts by selected location rather than by raw query
+string, because raw addresses can be ambiguous.
 
 Another practical challenge was local development through WSL on a Windows
 mounted directory. The app itself is standard Rails, but generated binstub file

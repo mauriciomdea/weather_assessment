@@ -1,6 +1,6 @@
 <main class="page-shell">
   <section class="search-panel forecast-panel">
-    <%= link_to "Search another location", root_path(unit: @unit), class: "back-link" %>
+    <%= link_to "Search another location", root_path, class: "back-link" %>
 
     <% if @forecast_error.present? %>
       <h1>Forecast unavailable</h1>

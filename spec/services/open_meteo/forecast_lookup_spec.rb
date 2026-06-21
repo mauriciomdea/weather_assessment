@@ -9,7 +9,7 @@ RSpec.describe OpenMeteo::ForecastLookup do
   let(:location) do
     LocationResult.new(
       id: 3_451_190,
-      name: "Jacarepaguá",
+      name: "Jacarepagua",
       latitude: -22.9626,
       longitude: -43.3866
     )
@@ -19,52 +19,72 @@ RSpec.describe OpenMeteo::ForecastLookup do
       latitude: -22.9626,
       longitude: -43.3866,
       timezone: "America/Sao_Paulo",
-      unit: "celsius",
-      current_temperature: 24.8
+      unit: "fahrenheit",
+      current_temperature: 77.0,
+      daily_forecasts: [
+        DailyForecast.new(date: "2026-06-19", temperature_max: 86.0, temperature_min: 68.0)
+      ]
     )
   end
 
   describe "#call" do
-    it "returns a fresh forecast on cache miss" do
+    it "returns a fresh Fahrenheit forecast on cache miss" do
+      allow(forecast_client).to receive(:fetch).and_return(fresh_forecast)
+
+      forecast = forecast_lookup.call(location:, unit: "fahrenheit")
+
+      expect(forecast).to have_attributes(
+        unit: "fahrenheit",
+        current_temperature: 77.0,
+        from_cache: false
+      )
+      expect(forecast_client).to have_received(:fetch)
+        .with(latitude: -22.9626, longitude: -43.3866, unit: "fahrenheit")
+    end
+
+    it "converts a fresh Fahrenheit forecast when Celsius is requested" do
       allow(forecast_client).to receive(:fetch).and_return(fresh_forecast)
 
       forecast = forecast_lookup.call(location:, unit: "celsius")
 
       expect(forecast).to have_attributes(
-        current_temperature: 24.8,
+        unit: "celsius",
+        current_temperature: 25.0,
         from_cache: false
       )
+      expect(forecast.daily_forecasts).to contain_exactly(
+        have_attributes(temperature_max: 30.0, temperature_min: 20.0)
+      )
       expect(forecast_client).to have_received(:fetch)
-        .with(latitude: -22.9626, longitude: -43.3866, unit: "celsius")
+        .with(latitude: -22.9626, longitude: -43.3866, unit: "fahrenheit")
     end
 
     it "returns a cached forecast on repeated lookup" do
       allow(forecast_client).to receive(:fetch).and_return(fresh_forecast)
 
-      forecast_lookup.call(location:, unit: "celsius")
-      cached_forecast = forecast_lookup.call(location:, unit: "celsius")
+      forecast_lookup.call(location:, unit: "fahrenheit")
+      cached_forecast = forecast_lookup.call(location:, unit: "fahrenheit")
 
       expect(cached_forecast).to have_attributes(
-        current_temperature: 24.8,
+        current_temperature: 77.0,
         from_cache: true,
         retrieved_at: fresh_forecast.retrieved_at
       )
       expect(forecast_client).to have_received(:fetch).once
     end
 
-    it "caches Celsius and Fahrenheit forecasts separately" do
-      celsius_forecast = ForecastResult.new(latitude: -22.9626, longitude: -43.3866, unit: "celsius", current_temperature: 24.8)
-      fahrenheit_forecast = ForecastResult.new(latitude: -22.9626, longitude: -43.3866, unit: "fahrenheit", current_temperature: 76.6)
+    it "uses the cached Fahrenheit forecast when the display unit changes" do
+      allow(forecast_client).to receive(:fetch).and_return(fresh_forecast)
 
-      allow(forecast_client).to receive(:fetch)
-        .with(latitude: -22.9626, longitude: -43.3866, unit: "celsius")
-        .and_return(celsius_forecast)
-      allow(forecast_client).to receive(:fetch)
-        .with(latitude: -22.9626, longitude: -43.3866, unit: "fahrenheit")
-        .and_return(fahrenheit_forecast)
+      forecast_lookup.call(location:, unit: "fahrenheit")
+      converted_forecast = forecast_lookup.call(location:, unit: "celsius")
 
-      expect(forecast_lookup.call(location:, unit: "celsius").current_temperature).to eq(24.8)
-      expect(forecast_lookup.call(location:, unit: "fahrenheit").current_temperature).to eq(76.6)
+      expect(converted_forecast).to have_attributes(
+        unit: "celsius",
+        current_temperature: 25.0,
+        from_cache: true
+      )
+      expect(forecast_client).to have_received(:fetch).once
     end
 
     it "writes forecasts with a 30 minute expiration" do
@@ -77,8 +97,8 @@ RSpec.describe OpenMeteo::ForecastLookup do
 
       expect(cache_store).to have_received(:write)
         .with(
-          "forecast/location/3451190/celsius",
-          have_attributes(from_cache: false),
+          "forecast/location/3451190",
+          have_attributes(unit: "fahrenheit", from_cache: false),
           expires_in: 30.minutes
         )
     end
@@ -95,9 +115,15 @@ RSpec.describe OpenMeteo::ForecastLookup do
       end.to raise_error(ArgumentError, 'Unsupported temperature unit: "kelvin"')
     end
 
-    it "logs location and unit context when forecast retrieval fails" do
+    it "logs location, fetch unit, and display unit context when forecast retrieval fails" do
       allow(forecast_client).to receive(:fetch)
-        .and_raise(OpenMeteo::ResponseError.new("Open-Meteo forecast failed with HTTP 429", action: "forecast", status: "429"))
+        .and_raise(
+          OpenMeteo::ResponseError.new(
+            "Open-Meteo forecast failed with HTTP 429",
+            action: "forecast",
+            status: "429"
+          )
+        )
 
       expect do
         forecast_lookup.call(location:, unit: "celsius")
@@ -109,7 +135,8 @@ RSpec.describe OpenMeteo::ForecastLookup do
             "provider=open_meteo",
             "action=forecast",
             "location=id:3451190",
-            "unit=celsius",
+            "fetch_unit=fahrenheit",
+            "display_unit=celsius",
             "error_class=OpenMeteo::ResponseError",
             "status=429"
           )
@@ -118,16 +145,16 @@ RSpec.describe OpenMeteo::ForecastLookup do
   end
 
   describe "#cache_key" do
-    it "uses location id and unit when a location id is available" do
-      expect(forecast_lookup.cache_key(location:, unit: "fahrenheit"))
-        .to eq("forecast/location/3451190/fahrenheit")
+    it "uses location id when a location id is available" do
+      expect(forecast_lookup.cache_key(location:))
+        .to eq("forecast/location/3451190")
     end
 
-    it "falls back to coordinates and unit when location id is missing" do
+    it "falls back to coordinates when location id is missing" do
       location = LocationResult.new(latitude: 48.8566, longitude: 2.3522)
 
-      expect(forecast_lookup.cache_key(location:, unit: "celsius"))
-        .to eq("forecast/coordinates/48.8566,2.3522/celsius")
+      expect(forecast_lookup.cache_key(location:))
+        .to eq("forecast/coordinates/48.8566,2.3522")
     end
   end
 end

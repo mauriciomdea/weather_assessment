@@ -8,8 +8,8 @@ RSpec.describe "Locations", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Weather Forecast Assessment")
       expect(response.body).to include("Enter a US ZIP code to search forecast locations.")
-      expect(response.body).to include("Celsius")
-      expect(response.body).to include("Fahrenheit")
+      expect(response.body).not_to include("Celsius")
+      expect(response.body).not_to include("Fahrenheit")
     end
   end
 

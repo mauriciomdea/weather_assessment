@@ -73,6 +73,24 @@ class ForecastResult
     [ (Time.current - retrieved_at) / 60, 0 ].max.floor
   end
 
+  def with_unit(requested_unit)
+    normalized_unit = self.class.normalize_unit(requested_unit)
+    return self if normalized_unit == unit
+
+    self.class.new(
+      latitude:,
+      longitude:,
+      timezone:,
+      unit: normalized_unit,
+      current_temperature: convert_temperature(current_temperature, to: normalized_unit),
+      current_weather_code:,
+      current_time:,
+      daily_forecasts: daily_forecasts.map { |daily_forecast| convert_daily_forecast(daily_forecast, to: normalized_unit) },
+      from_cache:,
+      retrieved_at:
+    )
+  end
+
   def with_cache_status(from_cache)
     self.class.new(
       latitude:,
@@ -86,5 +104,30 @@ class ForecastResult
       from_cache:,
       retrieved_at:
     )
+  end
+
+  private
+
+  def convert_daily_forecast(daily_forecast, to:)
+    DailyForecast.new(
+      date: daily_forecast.date,
+      temperature_max: convert_temperature(daily_forecast.temperature_max, to:),
+      temperature_min: convert_temperature(daily_forecast.temperature_min, to:),
+      weather_code: daily_forecast.weather_code
+    )
+  end
+
+  def convert_temperature(temperature, to:)
+    return if temperature.nil?
+
+    temperature = temperature.to_f
+
+    if unit == "fahrenheit" && to == "celsius"
+      (temperature - 32) * 5 / 9.0
+    elsif unit == "celsius" && to == "fahrenheit"
+      (temperature * 9 / 5.0) + 32
+    else
+      temperature
+    end
   end
 end
