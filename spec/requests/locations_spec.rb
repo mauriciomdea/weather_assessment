@@ -10,6 +10,8 @@ RSpec.describe "Locations", type: :request do
       expect(response.body).to include("Enter a US ZIP code to search forecast locations.")
       expect(response.body).not_to include("Celsius")
       expect(response.body).not_to include("Fahrenheit")
+      expect(response.body).not_to include('rel="icon"')
+      expect(response.body).not_to include("apple-touch-icon")
     end
   end
 
