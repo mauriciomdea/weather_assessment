@@ -2,11 +2,9 @@
   <% if error.present? %>
     <p class="status-message error"><%= error %></p>
   <% elsif query.blank? %>
-    <p class="status-message">Start typing to search global locations.</p>
-  <% elsif query.strip.length < 2 %>
-    <p class="status-message">Enter at least two characters to search.</p>
+    <p class="status-message">Enter a US ZIP code to search forecast locations.</p>
   <% elsif search_performed && locations.empty? %>
-    <p class="status-message">No matching locations found for "<%= query %>".</p>
+    <p class="status-message">No matching US ZIP code found for "<%= query %>".</p>
   <% elsif locations.any? %>
     <h2>Matching Locations</h2>
     <ul class="location-list">

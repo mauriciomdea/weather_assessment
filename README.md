@@ -1,13 +1,13 @@
 # Weather Assessment
 
-Weather Assessment is a Ruby on Rails application that lets a user search for a
-global location, choose one of the matching results, and view a weather forecast
-for that selected place.
+Weather Assessment is a Ruby on Rails application that lets a user enter a US
+ZIP code, or an address containing one, choose one of the matching results, and
+view a weather forecast for that selected place.
 
 The original assessment asks for address input, forecast retrieval, display of
 forecast details, 30-minute caching, and an indicator when results come from
-cache. This implementation satisfies those requirements and generalizes the
-input model from ZIP-only lookup to global location search.
+cache. This implementation satisfies those requirements by resolving US ZIP
+codes through a dedicated location service before retrieving forecast data.
 
 ## Requirements
 
@@ -60,9 +60,10 @@ bundle exec rubocop
 
 ## User Flow
 
-1. The user enters a free-form location query, such as `Jacarepagua`, `Berlin`,
-   or `10001`.
-2. The app searches global locations through the Open-Meteo Geocoding API.
+1. The user enters a US ZIP code or an address containing one, such as
+   `1 Apple Park Way, Cupertino, CA 95014`.
+2. The app extracts the ZIP code and searches matching US locations through
+   Zippopotam.us.
 3. Matching locations are displayed progressively with Turbo and Stimulus.
 4. The user selects a location.
 5. The user can choose Celsius or Fahrenheit.
@@ -75,7 +76,8 @@ bundle exec rubocop
 
 ## Requirement Mapping
 
-- Accept an address as input: the app accepts free-form global location input.
+- Accept an address as input: the app accepts a US ZIP code or an address
+  containing one.
 - Retrieve forecast data: selected locations are resolved to latitude/longitude
   and passed to Open-Meteo Forecast.
 - Include current temperature: shown on the forecast page.
@@ -95,9 +97,10 @@ app/controllers/locations_controller.rb
 app/controllers/forecasts_controller.rb
 
 app/services/open_meteo/client.rb
-app/services/open_meteo/location_search.rb
 app/services/open_meteo/forecast_client.rb
 app/services/open_meteo/forecast_lookup.rb
+app/services/zippopotamus/client.rb
+app/services/zippopotamus/location_search.rb
 
 app/models/location_result.rb
 app/models/forecast_result.rb
@@ -107,22 +110,29 @@ app/models/daily_forecast.rb
 `OpenMeteo::Client` owns HTTP behavior, JSON parsing, timeouts, custom errors,
 and low-level API failure logging.
 
-`OpenMeteo::LocationSearch` searches global place names and postal codes through
-Open-Meteo Geocoding.
-
 `OpenMeteo::ForecastClient` retrieves current and daily forecast data from
 Open-Meteo Forecast.
 
 `OpenMeteo::ForecastLookup` coordinates forecast retrieval and caching.
+
+`Zippopotamus::Client` owns HTTP behavior, JSON parsing, timeouts, custom
+errors, and low-level API failure logging for ZIP-code lookup.
+
+`Zippopotamus::LocationSearch` extracts a US ZIP code from the submitted input
+and maps the matching places into normalized `LocationResult` objects.
 
 The value objects normalize API responses so controllers and views do not depend
 on raw response hashes.
 
 ## API Choices
 
-The app uses Open-Meteo because it provides both geocoding and forecast APIs,
-requires no API key for this assessment/demo use case, supports global location
-search, and supports Celsius/Fahrenheit forecast parameters directly.
+The app uses Zippopotam.us for location lookup because it is open, free, requires
+no API key, supports US ZIP-code lookup, and returns latitude/longitude data in a
+small response shape that maps cleanly into the app's location boundary.
+
+The app uses Open-Meteo for forecast retrieval because it requires no API key for
+this assessment/demo use case and supports Celsius/Fahrenheit forecast
+parameters directly.
 
 The implementation uses Ruby's standard `Net::HTTP` instead of adding another
 HTTP library. That keeps the dependency footprint small while still giving
@@ -167,9 +177,7 @@ The services log useful diagnostic context through `Rails.logger.warn`.
 Location search logs:
 
 - provider and action
-- query length, not the raw query
-- result count
-- language
+- whether a ZIP code was present, not the raw query
 - error class
 - upstream status when available
 
@@ -194,7 +202,7 @@ live API availability.
 Coverage includes:
 
 - API client success and failure behavior.
-- Global location search behavior.
+- US ZIP-code location search behavior.
 - Forecast response normalization.
 - Celsius/Fahrenheit unit handling.
 - 30-minute cache behavior and cache indicators.
@@ -212,7 +220,7 @@ bundle exec rubocop
 bundle exec brakeman --quiet
 ```
 
-At the time of this documentation pass, the suite contains 44 passing examples.
+At the time of this documentation pass, the suite contains 51 passing examples.
 RuboCop reports no offenses. Brakeman reports no application-code security
 warnings, but it does report one weak dependency warning because Rails 7.2.3.1
 support ends on August 9, 2026; this project intentionally uses Rails 7.2.3.1
@@ -220,8 +228,7 @@ to match the assessment setup.
 
 ## Assumptions
 
-- The app supports global place names and postal codes rather than only US ZIP
-  codes.
+- The app supports US ZIP codes and addresses containing US ZIP codes.
 - A user must select one of the returned locations before forecast retrieval.
 - Weather codes are displayed as raw Open-Meteo codes. A user-friendly weather
   code translation table would be a good enhancement.
@@ -230,10 +237,11 @@ to match the assessment setup.
 
 ## Challenges
 
-The main implementation challenge was keeping the original ZIP-code-oriented
-requirement aligned with a broader global address search experience. I chose to
-document that explicitly and cache by selected location plus unit rather than by
-raw query string, because raw queries can be ambiguous.
+The main implementation challenge was keeping address input flexible while
+preserving the assessment's ZIP-code caching requirement. I chose to extract the
+US ZIP code from the submitted address, resolve it through a dedicated location
+service, and cache forecasts by selected location plus unit rather than by raw
+query string, because raw addresses can be ambiguous.
 
 Another practical challenge was local development through WSL on a Windows
 mounted directory. The app itself is standard Rails, but generated binstub file
@@ -244,6 +252,7 @@ permissions needed care during setup.
 - Translate Open-Meteo weather codes into human-readable descriptions.
 - Add weather icons.
 - Add system specs with browser-level Turbo/Stimulus interaction coverage.
+- Add non-US postal-code support through another provider adapter.
 - Persist recent searches.
 - Add retry/backoff for retryable upstream API failures.
 - Configure a shared production cache store if deployed beyond a single process.

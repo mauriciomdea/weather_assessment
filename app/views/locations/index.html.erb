@@ -1,7 +1,7 @@
 <main class="page-shell">
   <section class="search-panel">
     <h1>Weather Assessment</h1>
-    <p class="lede">Search for a city, neighborhood, address, or postal code to find matching global locations.</p>
+    <p class="lede">Enter a US ZIP code, or an address containing one, to find matching forecast locations.</p>
 
     <%= form_with url: locations_path,
                   method: :get,
@@ -15,7 +15,7 @@
       <div class="search-row">
         <%= form.search_field :query,
                               value: @query,
-                              placeholder: "Jacarepagua, Berlin, 10001...",
+                              placeholder: "1 Apple Park Way, Cupertino, CA 95014",
                               autocomplete: "off",
                               autofocus: true,
                               data: { action: "input->location-search#search" } %>
