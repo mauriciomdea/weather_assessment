@@ -19,7 +19,9 @@ RSpec.describe "Forecasts", type: :request do
       get forecast_path, params: location_params
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Cupertino, California, United States")
+      expect(response.body).to include("<h1>Cupertino</h1>")
+      expect(response.body).not_to include("37.3180,")
+      expect(response.body).not_to include("America/Los_Angeles")
       expect(response.body).to include("77.0&deg;F")
       expect(response.body).to include("High 86.0&deg;F")
       expect(response.body).to include("Low 68.0&deg;F")

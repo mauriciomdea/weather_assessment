@@ -8,14 +8,7 @@
     <% else %>
       <div class="forecast-header">
         <div>
-          <h1><%= @location.display_name %></h1>
-          <p class="lede">
-            <%= number_with_precision(@location.latitude, precision: 4) %>,
-            <%= number_with_precision(@location.longitude, precision: 4) %>
-            <% if @forecast.timezone.present? %>
-              &middot; <%= @forecast.timezone %>
-            <% end %>
-          </p>
+          <h1><%= @location.name %></h1>
         </div>
 
         <%= form_with url: forecast_path, method: :get, class: "unit-form" do %>
