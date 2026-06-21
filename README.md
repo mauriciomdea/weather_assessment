@@ -68,8 +68,7 @@ bundle exec rubocop
 4. The user selects a location.
 5. The user can choose Celsius or Fahrenheit.
 6. The app retrieves forecast data from Open-Meteo.
-7. The app displays current temperature, weather code, and daily high/low
-   forecasts.
+7. The app displays current temperature and daily high/low forecasts.
 8. Forecasts are cached for 30 minutes by selected location and unit.
 9. Cached forecast pages show how many minutes ago the forecast was last
    updated.
@@ -230,8 +229,8 @@ to match the assessment setup.
 
 - The app supports US ZIP codes and addresses containing US ZIP codes.
 - A user must select one of the returned locations before forecast retrieval.
-- Weather codes are displayed as raw Open-Meteo codes. A user-friendly weather
-  code translation table would be a good enhancement.
+- Raw weather codes are retrieved from Open-Meteo but are not displayed because
+  they are not meaningful to most end users.
 - Rails' configured cache store is sufficient for the assessment. A production
   deployment may need a shared cache store.
 

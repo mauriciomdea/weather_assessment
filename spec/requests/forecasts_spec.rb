@@ -23,6 +23,7 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("24.8&deg;C")
       expect(response.body).to include("High 29.1&deg;C")
       expect(response.body).to include("Low 20.4&deg;C")
+      expect(response.body).not_to include("Weather code")
       expect(response.body).not_to include("Last update")
     end
 
