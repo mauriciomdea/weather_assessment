@@ -226,7 +226,7 @@ bundle exec rubocop
 bundle exec brakeman --quiet
 ```
 
-At the time of this documentation pass, the suite contains 54 passing examples.
+At the time of this documentation pass, the suite contains 51 passing examples.
 RuboCop reports no offenses. Brakeman reports no application-code security
 warnings, but it does report one weak dependency warning because Rails 7.2.3.1
 support ends on August 9, 2026; this project intentionally uses Rails 7.2.3.1
