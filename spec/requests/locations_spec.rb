@@ -6,7 +6,7 @@ RSpec.describe "Locations", type: :request do
       get root_path
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Weather Assessment")
+      expect(response.body).to include("Weather Forecast Assessment")
       expect(response.body).to include("Enter a US ZIP code to search forecast locations.")
       expect(response.body).to include("Celsius")
       expect(response.body).to include("Fahrenheit")

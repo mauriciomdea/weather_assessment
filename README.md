@@ -1,8 +1,8 @@
-# Weather Assessment
+# Weather Forecast Assessment
 
-Weather Assessment is a Ruby on Rails application that lets a user enter a US
-ZIP code, or an address containing one, choose one of the matching results, and
-view a weather forecast for that selected place.
+Weather Forecast Assessment is a Ruby on Rails application that lets a user
+enter a US ZIP code, or an address containing one, choose one of the matching
+results, and view a weather forecast for that selected place.
 
 The original assessment asks for address input, forecast retrieval, display of
 forecast details, 30-minute caching, and an indicator when results come from
