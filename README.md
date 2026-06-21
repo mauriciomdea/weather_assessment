@@ -9,6 +9,8 @@ forecast details, 30-minute caching, and an indicator when results come from
 cache. This implementation satisfies those requirements by resolving US ZIP
 codes through a dedicated location service before retrieving forecast data.
 
+Submitted by Mauricio Almeida: [https://github.com/mauriciomdea](https://github.com/mauriciomdea)
+
 ## Requirements
 
 - Ruby 3.4.9
