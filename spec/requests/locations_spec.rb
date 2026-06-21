@@ -12,6 +12,8 @@ RSpec.describe "Locations", type: :request do
       expect(response.body).not_to include("Fahrenheit")
       expect(response.body).not_to include('rel="icon"')
       expect(response.body).not_to include("apple-touch-icon")
+      expect(response.body).to include("Mauricio Almeida")
+      expect(response.body).to include('href="https://github.com/mauriciomdea"')
     end
   end
 

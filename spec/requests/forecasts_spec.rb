@@ -27,6 +27,8 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("Low 68.0&deg;F")
       expect(response.body).not_to include("Weather code")
       expect(response.body).not_to include("Last update")
+      expect(response.body).to include("Mauricio Almeida")
+      expect(response.body).to include('href="https://github.com/mauriciomdea"')
     end
 
     it "displays the age of cached forecasts" do

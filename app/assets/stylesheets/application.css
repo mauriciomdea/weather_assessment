@@ -38,8 +38,19 @@ body {
 }
 
 .page-shell {
-  min-height: 100vh;
+  min-height: calc(100vh - 72px);
   padding: 48px 20px;
+}
+
+.site-footer {
+  padding: 0 20px 32px;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.site-footer a {
+  color: var(--color-accent-strong);
 }
 
 .search-panel {
