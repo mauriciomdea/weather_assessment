@@ -11,6 +11,44 @@ codes through a dedicated location service before retrieving forecast data.
 
 Submitted by [Mauricio Almeida](https://github.com/mauriciomdea).
 
+## Approach And Thought Process
+
+I treated the assessment as a small Rails application with one clear workflow:
+turn an address into a ZIP-code-backed location, retrieve a forecast for that
+location, and cache the result long enough to avoid unnecessary upstream calls.
+
+The first design decision was to keep the address input flexible while still
+respecting the ZIP-code requirement. Instead of asking the user for a separate
+ZIP-code field, the app accepts an address-like search string and extracts the
+first US ZIP code from it. That keeps the UI simple, satisfies the requirement,
+and makes the assumption explicit in the code and documentation.
+
+The second decision was to isolate external APIs behind provider-specific
+service objects. `Zippopotamus::LocationSearch` handles ZIP-code lookup and
+returns normalized `LocationResult` objects. `OpenMeteo::ForecastClient` handles
+forecast retrieval and returns normalized `ForecastResult` objects. Controllers
+do not parse API responses directly; they coordinate the request and pass data to
+views. This keeps responsibilities small and makes the code easier to test and
+discuss.
+
+The caching design uses explicit cache reads and writes in
+`OpenMeteo::ForecastLookup`. I chose this over `Rails.cache.fetch` because the
+UI must know whether a result came from cache. Explicit reads make the
+`from_cache` flag straightforward and keep the "Last update X minutes ago"
+indicator reliable.
+
+Forecast data is fetched in Fahrenheit and cached once per selected location.
+When the user changes units on the forecast page, the app converts the cached
+forecast locally instead of making another Open-Meteo request. That reduces API
+traffic, keeps cache keys simpler, and avoids storing duplicate forecasts that
+represent the same weather data in different units.
+
+RSpec specs were written in a BDD style around behavior and acceptance criteria:
+API clients handle upstream success/failure, services normalize data and cache
+correctly, value objects convert units, and request specs verify controller
+orchestration without locking tests to presentation markup. That keeps the suite
+useful as documentation without making it brittle.
+
 ## Requirements
 
 - Ruby 3.4.9
@@ -30,11 +68,8 @@ Install Ruby 3.4.9 and Rails 7.2.3.1, then install dependencies:
 bundle install
 ```
 
-Prepare the local database:
-
-```bash
-bin/rails db:prepare
-```
+No database setup is required for the current assessment flow. Forecasts are
+retrieved from external APIs and cached in Rails' configured cache store.
 
 Run the application:
 
